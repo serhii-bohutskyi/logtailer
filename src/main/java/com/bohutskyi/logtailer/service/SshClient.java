@@ -9,8 +9,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
-import org.springframework.stereotype.Service;
 
+import javax.annotation.PostConstruct;
+import javax.annotation.PreDestroy;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
@@ -18,60 +19,74 @@ import java.io.InputStreamReader;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Properties;
+import java.util.concurrent.BlockingQueue;
 
 /**
  * @author Serhii Bohutksyi
  */
 @Component
-public class SshClient {
+public class SshClient extends Thread {
 
     @Autowired
+    private BlockingQueue<String> logQueue;
+    @Autowired
     private ApplicationEventPublisher publisher;
-
+    @Autowired
     private JSch jsch;
+    private TailModel tailModel;
     private Session session;
 
-    public void connect(TailData tailData) throws JSchException {
-        jsch = new JSch();
-        session = jsch.getSession(tailData.getUsername(), tailData.getHost(), tailData.getPort());
-        session.setPassword(tailData.getPassword());
+    public void connect(TailModel tailModel) throws JSchException {
+        this.tailModel = tailModel;
+
+        session = jsch.getSession(tailModel.getUsername(), tailModel.getHost(), tailModel.getPort());
+        session.setPassword(tailModel.getPassword());
         Properties config = new Properties();
         config.put("StrictHostKeyChecking", "no");
         session.setConfig(config);
         session.connect(15000);
         session.setServerAliveInterval(15000);
+
+        start();
     }
 
-    @Async
-    public void tail(String filePath) throws JSchException, IOException, InterruptedException {
-        ChannelExec channelExec = (ChannelExec) session.openChannel("exec");
-        channelExec.setPty(true);
-        String cmd = "tail -f " + filePath;
-        channelExec.setCommand(cmd);
-        InputStream inputStream = channelExec.getInputStream();
-        channelExec.connect();
-        BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(inputStream));
+    @PreDestroy
+    public void disconnect() {
+        if (!isInterrupted()) {
+            interrupt();
+        }
+        session.disconnect();
+    }
 
-        List<String> buffer = new LinkedList<String>();
-        for (int j = 0; j < 3; j++) {//trying 3 times waiting
+    @Override
+    public void run() {
+        try {
+            ChannelExec channelExec = (ChannelExec) session.openChannel("exec");
+            channelExec.setPty(true);
+            String cmd = "tail -f " + tailModel.getServerLogPath();
+            channelExec.setCommand(cmd);
+            InputStream inputStream = channelExec.getInputStream();
+            channelExec.connect();
+            BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(inputStream));
 
-            if (bufferedReader.ready()) {
-                while (true) {
+            for (int j = 0; j < 3; j++) {//trying 3 times waiting
 
-                    String line = bufferedReader.readLine();
-                    if (line != null) {
-                        buffer.add(line);
-                        if (buffer.size() >= 10) {
-                            publisher.publishEvent(new PrintBufferEvent(buffer));
-                            buffer.clear();
+                if (bufferedReader.ready()) {
+                    while (!isInterrupted()) {
+
+                        String line = bufferedReader.readLine();
+                        if (line != null) {
+                            logQueue.put(line);
+                        } else {
+                            Thread.sleep(100);
                         }
-                    } else {
-                        Thread.sleep(100);
                     }
                 }
-            }
 
-            Thread.sleep(1000);
+                Thread.sleep(1000);
+            }
+        } catch (Exception e) {
+            //todo
         }
     }
 }

@@ -3,7 +3,7 @@ package com.bohutskyi.logtailer.service;
 /**
  * @author Serhii Bohutksyi
  */
-public class TailData {
+public class TailModel {
 
     private String host;
     private Integer port = 22;

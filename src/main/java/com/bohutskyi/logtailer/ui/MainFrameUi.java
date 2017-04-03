@@ -1,53 +1,25 @@
 package com.bohutskyi.logtailer.ui;
 
-import com.bohutskyi.logtailer.event.*;
-import com.bohutskyi.logtailer.service.FormParameter;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.context.event.EventListener;
-import org.springframework.stereotype.Component;
-
-import javax.annotation.PostConstruct;
 import javax.swing.*;
-import javax.swing.text.BadLocationException;
+import javax.swing.text.DefaultCaret;
+import javax.swing.text.Document;
 import javax.swing.text.SimpleAttributeSet;
-import javax.swing.text.StyleConstants;
 import javax.swing.text.StyledDocument;
 import java.awt.*;
-import java.util.HashMap;
-import java.util.Map;
 
 /**
  * @author Serhii Bohutskyi
  */
-@Component
-public class MainForm extends javax.swing.JFrame {
+public class MainFrameUi extends MainFrame {
 
-    private volatile boolean isTailing = false;
-    private volatile boolean isTailingToLocal = false;
+    public MainFrameUi() {
+        initComponents();
 
-    @Autowired
-    private ApplicationEventPublisher publisher;
+        ((DefaultCaret) logTextPane.getCaret()).setUpdatePolicy(DefaultCaret.ALWAYS_UPDATE);
+        logTextPane.setEditable(false);
+    }
 
-    @PostConstruct
     private void initComponents() {
-
-        try {
-            for (javax.swing.UIManager.LookAndFeelInfo info : javax.swing.UIManager.getInstalledLookAndFeels()) {
-                if ("Nimbus".equals(info.getName())) {
-                    javax.swing.UIManager.setLookAndFeel(info.getClassName());
-                    break;
-                }
-            }
-        } catch (ClassNotFoundException ex) {
-            java.util.logging.Logger.getLogger(MainForm.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
-        } catch (InstantiationException ex) {
-            java.util.logging.Logger.getLogger(MainForm.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
-        } catch (IllegalAccessException ex) {
-            java.util.logging.Logger.getLogger(MainForm.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
-        } catch (javax.swing.UnsupportedLookAndFeelException ex) {
-            java.util.logging.Logger.getLogger(MainForm.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
-        }
 
         jPanel1 = new javax.swing.JPanel();
         sshPanel = new javax.swing.JPanel();
@@ -68,7 +40,7 @@ public class MainForm extends javax.swing.JFrame {
         errorsLabel = new javax.swing.JLabel();
         jScrollPane1 = new javax.swing.JScrollPane(
                 JScrollPane.VERTICAL_SCROLLBAR_ALWAYS,
-                JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+                JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
         logTextPane = new javax.swing.JTextPane();
         jSeparator1 = new javax.swing.JSeparator();
 
@@ -84,28 +56,13 @@ public class MainForm extends javax.swing.JFrame {
         jLabel2.setText("Port:");
 
         hostTextField.setToolTipText("ip address or domain name of server");
-        hostTextField.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                hostTextFieldActionPerformed(evt);
-            }
-        });
 
         portTextField.setText("22");
         portTextField.setToolTipText("default port 22");
-        portTextField.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                portTextFieldActionPerformed(evt);
-            }
-        });
 
         jLabel3.setText("Username:");
 
         usernameTextField.setToolTipText("ssh username");
-        usernameTextField.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                usernameTextFieldActionPerformed(evt);
-            }
-        });
 
         jLabel4.setText("Password:");
 
@@ -118,18 +75,8 @@ public class MainForm extends javax.swing.JFrame {
         jLabel6.setText("Local log path:");
 
         tailButton.setText("Tail");
-        tailButton.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                tailButtonActionPerformed(evt);
-            }
-        });
 
         tailToFileButton.setText("Tail to file");
-        tailToFileButton.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                tailToFileButtonActionPerformed(evt);
-            }
-        });
 
         javax.swing.GroupLayout sshPanelLayout = new javax.swing.GroupLayout(sshPanel);
         sshPanel.setLayout(sshPanelLayout);
@@ -202,11 +149,6 @@ public class MainForm extends javax.swing.JFrame {
 
         logDoc = logTextPane.getStyledDocument();
 
-        keyWord = new SimpleAttributeSet();
-        StyleConstants.setForeground(keyWord, Color.RED);
-        StyleConstants.setBackground(keyWord, Color.YELLOW);
-        StyleConstants.setBold(keyWord, true);
-
         javax.swing.GroupLayout jPanel1Layout = new javax.swing.GroupLayout(jPanel1);
         jPanel1.setLayout(jPanel1Layout);
         jPanel1Layout.setHorizontalGroup(
@@ -246,81 +188,6 @@ public class MainForm extends javax.swing.JFrame {
         setVisible(true);
     }
 
-    private void tailButtonActionPerformed(java.awt.event.ActionEvent evt) {
-        if (isTailing) {
-            publisher.publishEvent(new StopTailEvent());
-            tailButton.setText("Tail");
-            isTailing = false;
-        } else {
-            publisher.publishEvent(new StartTailEvent(prepareParameters()));
-            tailButton.setText("Stop tailing");
-            isTailing = true;
-        }
-    }
-
-    private Map<FormParameter, String> prepareParameters() {
-        HashMap<FormParameter, String> params = new HashMap<FormParameter, String>();
-        params.put(FormParameter.HOST, hostTextField.getText());
-        params.put(FormParameter.PORT, portTextField.getText());
-        params.put(FormParameter.USERNAME, usernameTextField.getText());
-        params.put(FormParameter.PASSWORD, new String(passwordPasswordField.getPassword()));
-        params.put(FormParameter.SERVER_LOG_PATH, serverLogPathTextField.getText());
-        return params;
-    }
-
-    private void tailToFileButtonActionPerformed(java.awt.event.ActionEvent evt) {
-        if (isTailingToLocal) {
-            publisher.publishEvent(new StopTailToFileEvent());
-            tailToFileButton.setText("Tail to file");
-            isTailingToLocal = false;
-        } else {
-            publisher.publishEvent(new StartTailToFileEvent(localLogPathTextField.getText()));
-            tailToFileButton.setText("Stop tailing to file");
-            isTailingToLocal = true;
-        }
-    }
-
-    private void usernameTextFieldActionPerformed(java.awt.event.ActionEvent evt) {
-        // TODO add your handling code here:
-    }
-
-    private void portTextFieldActionPerformed(java.awt.event.ActionEvent evt) {
-        // TODO add your handling code here:
-    }
-
-    private void hostTextFieldActionPerformed(java.awt.event.ActionEvent evt) {
-        // TODO add your handling code here:
-    }
-
-    @EventListener
-    public void handlePrintBufferEvent(final PrintBufferEvent event) throws BadLocationException {
-        EventQueue.invokeLater(new Runnable() {
-            @Override
-            public void run() {
-                for (String log : event.getList()) {
-                    try {
-                        logDoc.insertString(logDoc.getLength(), "\n" + log, keyWord);
-                    } catch (BadLocationException e) {
-                        e.printStackTrace();
-                    }
-                }
-            }
-        });
-
-    }
-
-    @EventListener
-    public void handleShowErrors(ShowErrorsEvent showErrorsEvent) {
-
-        tailButton.setText("Tail");
-        isTailing = false;
-        StringBuffer message = new StringBuffer();
-        for (String error : showErrorsEvent.getErrors()) {
-            message.append(error).append("\n");
-        }
-        JOptionPane.showMessageDialog(this, message.toString());
-
-    }
 
     // Variables declaration - do not modify
     private javax.swing.JLabel errorsLabel;
@@ -344,6 +211,70 @@ public class MainForm extends javax.swing.JFrame {
     private javax.swing.JButton tailToFileButton;
     private javax.swing.JTextField usernameTextField;
     private StyledDocument logDoc;
-    private SimpleAttributeSet keyWord;
-    // End of variables declaration                   
+
+
+    // End of variables declaration
+
+
+    @Override
+    protected void updateFont(Font font) {
+        hostTextField.setFont(font);
+        jLabel1.setFont(font);
+        jLabel2.setFont(font);
+        jLabel3.setFont(font);
+        jLabel4.setFont(font);
+        jLabel5.setFont(font);
+        jLabel6.setFont(font);
+        jPanel1.setFont(font);
+        jScrollPane1.setFont(font);
+        localLogPathTextField.setFont(font);
+        logTextPane.setFont(font);
+        portTextField.setFont(font);
+        serverLogPathTextField.setFont(font);
+        sshPanel.setFont(font);
+        tailButton.setFont(font);
+        tailToFileButton.setFont(font);
+        usernameTextField.setFont(font);
+        passwordPasswordField.setFont(font);
+    }
+
+    @Override
+    public JTextField getHostTextField() {
+        return hostTextField;
+    }
+
+    @Override
+    public Document getLogDocument() {
+        return logDoc;
+    }
+
+    @Override
+    public JPasswordField getPasswordPasswordField() {
+        return passwordPasswordField;
+    }
+
+    @Override
+    public JTextField getPortTextField() {
+        return portTextField;
+    }
+
+    @Override
+    public JTextField getServerLogPathTextField() {
+        return serverLogPathTextField;
+    }
+
+    @Override
+    public JButton getTailButton() {
+        return tailButton;
+    }
+
+    @Override
+    public JTextField getUsernameTextField() {
+        return usernameTextField;
+    }
+
+    @Override
+    public JButton getTailToFileButton() {
+        return tailToFileButton;
+    }
 }

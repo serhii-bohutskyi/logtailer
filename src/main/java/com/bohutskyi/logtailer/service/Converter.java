@@ -10,13 +10,13 @@ import java.util.Map;
 @Service
 public class Converter {
 
-    public TailData convert(Map<FormParameter, String> map) {
-        TailData tailData = new TailData();
-        tailData.setHost(map.get(FormParameter.HOST));
-        tailData.setPort(Integer.valueOf(map.get(FormParameter.PORT)));
-        tailData.setUsername(map.get(FormParameter.USERNAME));
-        tailData.setPassword(map.get(FormParameter.PASSWORD));
-        tailData.setServerLogPath(map.get(FormParameter.SERVER_LOG_PATH));
-        return tailData;
+    public TailModel convert(Map<FormParameter, String> map) {
+        TailModel tailModel = new TailModel();
+        tailModel.setHost(map.get(FormParameter.HOST));
+        tailModel.setPort(Integer.valueOf(map.get(FormParameter.PORT)));
+        tailModel.setUsername(map.get(FormParameter.USERNAME));
+        tailModel.setPassword(map.get(FormParameter.PASSWORD));
+        tailModel.setServerLogPath(map.get(FormParameter.SERVER_LOG_PATH));
+        return tailModel;
     }
 }

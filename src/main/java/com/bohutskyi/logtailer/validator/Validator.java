@@ -2,6 +2,7 @@ package com.bohutskyi.logtailer.validator;
 
 import com.bohutskyi.logtailer.service.FormParameter;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.math.NumberUtils;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
@@ -22,7 +23,7 @@ public class Validator {
         if (StringUtils.isEmpty(host)) {
             errors.add("Host is not valid!");
         }
-        if (StringUtils.isEmpty(port)) {
+        if (StringUtils.isEmpty(port) && !NumberUtils.isDigits(port)) {
             errors.add("Port is not valid!");
         }
         if (StringUtils.isEmpty(username)) {
