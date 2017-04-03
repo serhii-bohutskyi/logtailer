@@ -12,13 +12,14 @@ import java.util.Map;
 @Component
 public class Validator {
 
-    public List<String> validate(Map<FormParameter, String> params) {
+    public List<String> validate(Map<FormParameter, String> params, boolean validateLocalPath) {
         List<String> errors = new ArrayList<String>();
         String host = params.get(FormParameter.HOST);
         String port = params.get(FormParameter.PORT);
         String username = params.get(FormParameter.USERNAME);
         String password = params.get(FormParameter.PASSWORD);
         String serverLogPath = params.get(FormParameter.SERVER_LOG_PATH);
+        String localLogPath = params.get(FormParameter.LOCAL_LOG_PATH);
 
         if (StringUtils.isEmpty(host)) {
             errors.add("Host is not valid!");
@@ -34,6 +35,9 @@ public class Validator {
         }
         if (StringUtils.isEmpty(serverLogPath)) {
             errors.add("Server log path not valid!");
+        }
+        if (validateLocalPath && StringUtils.isEmpty(localLogPath)) {
+            errors.add("Local log path not valid!");
         }
 
         return errors;

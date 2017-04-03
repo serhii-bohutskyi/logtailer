@@ -1,25 +1,19 @@
 package com.bohutskyi.logtailer.service;
 
-import com.bohutskyi.logtailer.event.PrintBufferEvent;
 import com.jcraft.jsch.ChannelExec;
 import com.jcraft.jsch.JSch;
 import com.jcraft.jsch.JSchException;
 import com.jcraft.jsch.Session;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 
-import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 import java.io.BufferedReader;
-import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Properties;
+import java.util.*;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * @author Serhii Bohutksyi
@@ -27,27 +21,46 @@ import java.util.concurrent.BlockingQueue;
 @Component
 public class SshClient extends Thread {
 
+    private static final Integer BUFFER_SIZE = 10;
     @Autowired
-    private BlockingQueue<String> logQueue;
+    private BlockingQueue<List<String>> logUiQueue;
     @Autowired
-    private ApplicationEventPublisher publisher;
+    private BlockingQueue<List<String>> logFileQueue;
     @Autowired
     private JSch jsch;
+    private AtomicBoolean isTailToFile = new AtomicBoolean();
     private TailModel tailModel;
-    private Session session;
+    private Optional<Session> session = Optional.empty();
 
-    public void connect(TailModel tailModel) throws JSchException {
+    public void setIsTailToFile(AtomicBoolean isTailToFile) {
+        this.isTailToFile = isTailToFile;
+    }
+
+    public TailModel getTailModel() {
+        return tailModel;
+    }
+
+    public void setTailModel(TailModel tailModel) {
         this.tailModel = tailModel;
+    }
 
-        session = jsch.getSession(tailModel.getUsername(), tailModel.getHost(), tailModel.getPort());
-        session.setPassword(tailModel.getPassword());
+    public void connect() throws JSchException {
+        Session jschSession = jsch.getSession(tailModel.getUsername(), tailModel.getHost(), tailModel.getPort());
+        jschSession.setPassword(tailModel.getPassword());
         Properties config = new Properties();
         config.put("StrictHostKeyChecking", "no");
-        session.setConfig(config);
-        session.connect(15000);
-        session.setServerAliveInterval(15000);
+        jschSession.setConfig(config);
+        jschSession.connect(15000);
+        jschSession.setServerAliveInterval(15000);
 
-        start();
+        session = Optional.of(jschSession);
+    }
+
+    public void tail() throws JSchException {
+        if (!session.isPresent() || !session.get().isConnected()) {
+            connect();//reconnect
+        }
+        notify();
     }
 
     @PreDestroy
@@ -55,38 +68,59 @@ public class SshClient extends Thread {
         if (!isInterrupted()) {
             interrupt();
         }
-        session.disconnect();
+        if (session.isPresent()) {
+            session.get().disconnect();
+        }
     }
 
     @Override
     public void run() {
-        try {
-            ChannelExec channelExec = (ChannelExec) session.openChannel("exec");
-            channelExec.setPty(true);
-            String cmd = "tail -f " + tailModel.getServerLogPath();
-            channelExec.setCommand(cmd);
-            InputStream inputStream = channelExec.getInputStream();
-            channelExec.connect();
-            BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(inputStream));
-
-            for (int j = 0; j < 3; j++) {//trying 3 times waiting
-
-                if (bufferedReader.ready()) {
-                    while (!isInterrupted()) {
-
-                        String line = bufferedReader.readLine();
-                        if (line != null) {
-                            logQueue.put(line);
-                        } else {
-                            Thread.sleep(100);
-                        }
-                    }
+        while (!isInterrupted()) {
+            if (!session.isPresent()) {
+                try {
+                    wait();
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
                 }
+            } else {
+                try {
+                    ChannelExec channelExec = (ChannelExec) session.get().openChannel("exec");
+                    channelExec.setPty(true);
+                    String cmd = "tail -f " + tailModel.getServerLogPath();
+                    channelExec.setCommand(cmd);
+                    InputStream inputStream = channelExec.getInputStream();
+                    channelExec.connect();
+                    BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(inputStream));
 
-                Thread.sleep(1000);
+                    List<String> buffer = new ArrayList<>();
+                    for (int j = 0; j < 3; j++) {//trying 3 times waiting
+
+                        if (bufferedReader.ready()) {
+                            while (!isInterrupted()) {
+
+                                String line = bufferedReader.readLine();
+                                if (line != null) {
+                                    buffer.add(line);
+                                    if (buffer.size() >= BUFFER_SIZE) {
+
+                                        logUiQueue.put(Arrays.asList((String[]) buffer.toArray()));
+                                        logFileQueue.put(Arrays.asList((String[]) buffer.toArray()));
+
+                                        buffer.clear();
+
+                                    }
+                                } else {
+                                    Thread.sleep(100);
+                                }
+                            }
+                        }
+
+                        Thread.sleep(1000);
+                    }
+                } catch (Exception e) {
+                    //todo
+                }
             }
-        } catch (Exception e) {
-            //todo
         }
     }
 }

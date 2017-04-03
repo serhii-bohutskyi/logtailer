@@ -8,8 +8,9 @@ import org.springframework.boot.builder.SpringApplicationBuilder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.scheduling.annotation.EnableAsync;
 
-import java.util.concurrent.ArrayBlockingQueue;
+import java.util.List;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingDeque;
 
 /**
  * @author Serhii Bohutkyi
@@ -20,8 +21,13 @@ import java.util.concurrent.BlockingQueue;
 public class Application {
 
     @Bean
-    public BlockingQueue<String> logQueue() {
-        return new ArrayBlockingQueue<String>(1000);
+    public BlockingQueue<List<String>> logUiQueue() {
+        return new LinkedBlockingDeque<List<String>>(1000);
+    }
+
+    @Bean
+    public BlockingQueue<List<String>> logFileQueue() {
+        return new LinkedBlockingDeque<List<String>>(1000);
     }
 
     @Bean

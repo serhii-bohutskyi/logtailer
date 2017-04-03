@@ -37,6 +37,45 @@ public class FrameController extends AbstractFrameController {
     @PostConstruct
     public void init() {
         registerListener(mainFrame.getTailButton(), (e) -> onTailButtonClicked());
+        registerListener(mainFrame.getTailToFileButton(), (e) -> {
+            try {
+                onTailToFileButtonClicked();
+            } catch (JSchException e1) {
+                e1.printStackTrace();
+            }
+        });
+    }
+
+    private void onTailToFileButtonClicked() throws JSchException {
+        if (mainFrame.isTailingToFile()) {
+            stopTailingToFile();
+        } else {
+            startTailingToFile();
+        }
+    }
+
+    private void startTailingToFile() throws JSchException {
+        mainFrame.startTailToFileUi();
+        mainFrame.setEditable(false, true);
+
+        Map<FormParameter, String> parameters = mainFrame.getParameters();
+
+        List<String> errors = validator.validate(parameters, true);
+        if (errors.size() > 0) {
+            mainFrame.stopTailToFileUi();
+            Notifications.showFormValidationAlert(errors);
+            return;
+        }
+        TailModel tailModel = converter.convert(parameters);
+
+        sshClient.setTailModel(tailModel);
+        sshClient.connect();
+        sshClient.tail();
+
+    }
+
+    private void stopTailingToFile() {
+
     }
 
     public void onTailButtonClicked() {
@@ -52,7 +91,7 @@ public class FrameController extends AbstractFrameController {
 
         Map<FormParameter, String> parameters = mainFrame.getParameters();
 
-        List<String> errors = validator.validate(parameters);
+        List<String> errors = validator.validate(parameters, false);
         if (errors.size() > 0) {
             mainFrame.stopTailUi();
             Notifications.showFormValidationAlert(errors);

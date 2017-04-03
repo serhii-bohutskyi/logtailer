@@ -3,7 +3,6 @@ package com.bohutskyi.logtailer.ui;
 import javax.swing.*;
 import javax.swing.text.DefaultCaret;
 import javax.swing.text.Document;
-import javax.swing.text.SimpleAttributeSet;
 import javax.swing.text.StyledDocument;
 import java.awt.*;
 
@@ -236,6 +235,11 @@ public class MainFrameUi extends MainFrame {
         tailToFileButton.setFont(font);
         usernameTextField.setFont(font);
         passwordPasswordField.setFont(font);
+    }
+
+    @Override
+    public JTextField getLocalLogPathTextField() {
+        return localLogPathTextField;
     }
 
     @Override

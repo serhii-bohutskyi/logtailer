@@ -37,8 +37,6 @@ public abstract class MainFrame extends javax.swing.JFrame implements Runnable {
         logThread.start();
 
 
-
-
         handle4Kmonitor();
     }
 
@@ -62,6 +60,7 @@ public abstract class MainFrame extends javax.swing.JFrame implements Runnable {
         params.put(FormParameter.USERNAME, getUsernameTextField().getText());
         params.put(FormParameter.PASSWORD, new String(getPasswordPasswordField().getPassword()));
         params.put(FormParameter.SERVER_LOG_PATH, getServerLogPathTextField().getText());
+        params.put(FormParameter.LOCAL_LOG_PATH, getLocalLogPathTextField().getText());
         return params;
     }
 
@@ -130,10 +129,23 @@ public abstract class MainFrame extends javax.swing.JFrame implements Runnable {
 
     public abstract Document getLogDocument();
 
+    public abstract JTextField getLocalLogPathTextField();
+
     public boolean is4K() {
         GraphicsDevice gd = GraphicsEnvironment.getLocalGraphicsEnvironment().getDefaultScreenDevice();
         int width = gd.getDisplayMode().getWidth();
         int height = gd.getDisplayMode().getHeight();
         return width > 3000 && height > 2000;
+    }
+
+    public void setEditable(boolean editable, boolean withLocalFilePath) {
+        getHostTextField().setEditable(editable);
+        getPortTextField().setEditable(editable);
+        getUsernameTextField().setEditable(editable);
+        getPasswordPasswordField().setEditable(editable);
+        getServerLogPathTextField().setEditable(editable);
+        if (withLocalFilePath) {
+            getLocalLogPathTextField().setEditable(editable);
+        }
     }
 }
