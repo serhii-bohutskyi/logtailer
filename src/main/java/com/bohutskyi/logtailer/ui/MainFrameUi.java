@@ -5,6 +5,7 @@ import javax.swing.text.DefaultCaret;
 import javax.swing.text.Document;
 import javax.swing.text.StyledDocument;
 import java.awt.*;
+import java.util.*;
 
 /**
  * @author Serhii Bohutskyi
@@ -210,31 +211,25 @@ public class MainFrameUi extends MainFrame {
     private javax.swing.JButton tailToFileButton;
     private javax.swing.JTextField usernameTextField;
     private StyledDocument logDoc;
-
-
     // End of variables declaration
 
 
+    public static java.util.List<Component> getAllComponents(final Container c) {
+        Component[] comps = c.getComponents();
+        java.util.List<Component> compList = new ArrayList<Component>();
+        for (Component comp : comps) {
+            compList.add(comp);
+            if (comp instanceof Container)
+                compList.addAll(getAllComponents((Container) comp));
+        }
+        return compList;
+    }
+
     @Override
     protected void updateFont(Font font) {
-        hostTextField.setFont(font);
-        jLabel1.setFont(font);
-        jLabel2.setFont(font);
-        jLabel3.setFont(font);
-        jLabel4.setFont(font);
-        jLabel5.setFont(font);
-        jLabel6.setFont(font);
-        jPanel1.setFont(font);
-        jScrollPane1.setFont(font);
-        localLogPathTextField.setFont(font);
-        logTextPane.setFont(font);
-        portTextField.setFont(font);
-        serverLogPathTextField.setFont(font);
-        sshPanel.setFont(font);
-        tailButton.setFont(font);
-        tailToFileButton.setFont(font);
-        usernameTextField.setFont(font);
-        passwordPasswordField.setFont(font);
+        for (Component component : getAllComponents(jPanel1)) {
+            component.setFont(font);
+        }
     }
 
     @Override

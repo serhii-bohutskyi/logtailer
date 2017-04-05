@@ -1,6 +1,8 @@
 package com.bohutskyi.logtailer.service;
 
+import com.bohutskyi.logtailer.exception.LogFileWriterException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.PreDestroy;
@@ -19,25 +21,34 @@ import java.util.concurrent.BlockingQueue;
  */
 @Component
 public class LogFileWriter extends Thread {
+
     @Autowired
+    @Qualifier("logFileQueue")
     private BlockingQueue<List<String>> logFileQueue;
 
-    private Optional<FileChannel> fileChannel = Optional.empty();
+    private FileChannel fileChannel;
 
-    public void openChannel(String filePath) throws FileNotFoundException {
-        File file = new File(filePath);
-        if (!file.exists()) {
-            file.mkdirs();
-        }
-        fileChannel = Optional.of(new RandomAccessFile(file, "w").getChannel());
+    public void startWrite(String filePath) {
+        FileChannel channel = openChannel(filePath);
+        setFileChannel(channel);
+        start();
     }
 
-    public void writeToFile(List<String> lines) throws IOException {
-        if (!fileChannel.isPresent() || !fileChannel.get().isOpen()) {
-            throw new IllegalStateException("File Channel is closed or not opened!");
+    @PreDestroy
+    public void stopWrite() {
+        closeChannel();
+        interrupt();
+    }
+
+    private FileChannel openChannel(String filePath) {
+        File file = new File(filePath);
+        if (!file.exists()) {
+            file.mkdir();
         }
-        for (String line : lines) {
-            fileChannel.get().write(ByteBuffer.wrap(line.getBytes()));
+        try {
+            return new RandomAccessFile(file, "rw").getChannel();
+        } catch (FileNotFoundException e) {
+            throw new LogFileWriterException("Local file not found! Please check path and permissions.");
         }
     }
 
@@ -47,22 +58,37 @@ public class LogFileWriter extends Thread {
             while (!isInterrupted()) {
                 writeToFile(logFileQueue.take());
             }
-        } catch (InterruptedException ex) {
+        } catch (InterruptedException | IOException ex) {
             ex.printStackTrace();
-            //thread interrupted, todo handle this ?
-        } catch (IOException e) {
-            e.printStackTrace();
+            //thread interrupted, todo handle this
         }
     }
 
-    @PreDestroy
-    public void closeChannel() {
-        if (fileChannel.isPresent() && fileChannel.get().isOpen()) {
+    public void writeToFile(List<String> lines) throws IOException {
+        if (!getFileChannel().isPresent() || !getFileChannel().get().isOpen()) {
+            throw new IllegalStateException("File Channel is closed or not opened!");
+        }
+        for (String line : lines) {
+            getFileChannel().get().write(ByteBuffer.wrap(("\n" + line).getBytes()));
+        }
+    }
+
+
+    private void closeChannel() {
+        if (getFileChannel().isPresent() && getFileChannel().get().isOpen()) {
             try {
-                fileChannel.get().close();
+                getFileChannel().get().close();
             } catch (IOException e) {
                 e.printStackTrace();//todo
             }
         }
+    }
+
+    public Optional<FileChannel> getFileChannel() {
+        return Optional.ofNullable(fileChannel);
+    }
+
+    public void setFileChannel(FileChannel fileChannel) {
+        this.fileChannel = fileChannel;
     }
 }
