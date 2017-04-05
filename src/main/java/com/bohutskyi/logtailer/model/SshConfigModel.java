@@ -1,9 +1,11 @@
 package com.bohutskyi.logtailer.model;
 
+import com.bohutskyi.logtailer.service.SshClient;
+
 /**
  * @author Serhii Bohutksyi
  */
-public class TailModel {
+public class SshConfigModel implements SshClient.SshConfig {
 
     private String host;
     private Integer port = 22;

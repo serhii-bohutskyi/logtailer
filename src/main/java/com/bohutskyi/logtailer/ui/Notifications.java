@@ -1,12 +1,12 @@
 package com.bohutskyi.logtailer.ui;
 
-import javax.swing.*;
+import javax.swing.JOptionPane;
 import java.util.List;
 
 public class Notifications {
 
     public static void showFormValidationAlert(List<String> errors) {
-        StringBuffer message = new StringBuffer();
+        StringBuilder message = new StringBuilder();
         for (String error : errors) {
             message.append(error).append("\n");
         }
