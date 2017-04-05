@@ -1,59 +1,27 @@
 package com.bohutskyi.logtailer.service;
 
-import com.bohutskyi.logtailer.exception.SshClientException;
-import com.bohutskyi.logtailer.model.TailModel;
-import com.jcraft.jsch.JSch;
-import com.jcraft.jsch.JSchException;
-import com.jcraft.jsch.Session;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
-
-import javax.annotation.PreDestroy;
-import java.util.*;
+import java.io.InputStream;
 
 /**
- * @author Serhii Bohutksyi
+ * @author Serhii Bohutskyi
  */
-@Component
-public class SshClient {
+public interface SshClient {
 
-    @Autowired
-    private JSch jsch;
-    private Session session;
+    public void connect(SshConfig sshConfig);
 
-    public void connect(TailModel tailModel) {
-        if (isConnected()) {
-            disconnect();
-        }
-        try {
-            Session jschSession = jsch.getSession(tailModel.getUsername(), tailModel.getHost(), tailModel.getPort());
-            jschSession.setPassword(tailModel.getPassword());
-            Properties config = new Properties();
-            config.put("StrictHostKeyChecking", "no");
-            jschSession.setConfig(config);
-            jschSession.connect(15000);
-            jschSession.setServerAliveInterval(15000);
+    public boolean isConnected();
 
-            setSession(jschSession);
-        } catch (JSchException e) {
-            throw new SshClientException("Authentication failed! Check your credentials.", e);
-        }
-    }
+    public void disconnect();
 
-    public boolean isConnected() {
-        return getSession().isPresent() && getSession().get().isConnected();
-    }
+    public InputStream readFile(String filePath);
 
-    @PreDestroy
-    public void disconnect() {
-        getSession().ifPresent(Session::disconnect);
-    }
+    public interface SshConfig {
+        String getUsername();
 
-    public Optional<Session> getSession() {
-        return Optional.ofNullable(session);
-    }
+        String getPassword();
 
-    public void setSession(Session session) {
-        this.session = session;
+        String getHost();
+
+        Integer getPort();
     }
 }

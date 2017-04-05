@@ -1,21 +1,19 @@
 package com.bohutskyi.logtailer.controller;
 
+import com.bohutskyi.logtailer.model.SshConfigModel;
+import com.bohutskyi.logtailer.service.BufferedFileWriter;
 import com.bohutskyi.logtailer.service.Converter;
 import com.bohutskyi.logtailer.service.FormParameter;
-import com.bohutskyi.logtailer.service.LogFileWriter;
-import com.bohutskyi.logtailer.service.SshClient;
-import com.bohutskyi.logtailer.model.TailModel;
-import com.bohutskyi.logtailer.service.SshLogReader;
+import com.bohutskyi.logtailer.service.LogReaderThread;
+import com.bohutskyi.logtailer.service.SshClientImpl;
 import com.bohutskyi.logtailer.ui.MainFrame;
 import com.bohutskyi.logtailer.ui.Notifications;
 import com.bohutskyi.logtailer.validator.Validator;
-import com.jcraft.jsch.JSchException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.PostConstruct;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -34,11 +32,11 @@ public class FrameController extends AbstractFrameController {
     @Autowired
     private Validator validator;
     @Autowired
-    private SshClient sshClient;
+    private SshClientImpl sshClient;
     @Autowired
-    private LogFileWriter logFileWriter;
+    private BufferedFileWriter bufferedFileWriter;
     @Autowired
-    private SshLogReader sshLogReader;
+    private LogReaderThread logReaderThread;
 
     @PostConstruct
     public void init() {
@@ -67,13 +65,13 @@ public class FrameController extends AbstractFrameController {
             Notifications.showFormValidationAlert(errors);
             return;
         }
-        TailModel tailModel = converter.convert(parameters);
+        SshConfigModel sshConfigModel = converter.convert(parameters);
 
-        sshClient.connect(tailModel);
-        sshLogReader.startRead(tailModel.getServerLogPath());
-        sshLogReader.setIsSaving(true);
+        sshClient.connect(sshConfigModel);
+        logReaderThread.startRead(sshConfigModel.getServerLogPath());
+        logReaderThread.setIsSaving(true);
 
-        logFileWriter.startWrite(tailModel.getLocalLogPath());
+        bufferedFileWriter.startWrite(sshConfigModel.getLocalLogPath());
     }
 
     private void stopTailingToFile() {
@@ -100,10 +98,10 @@ public class FrameController extends AbstractFrameController {
             return;
         }
 
-        TailModel tailModel = converter.convert(parameters);
-        sshClient.connect(tailModel);
-        sshLogReader.startRead(tailModel.getServerLogPath());
-        sshLogReader.setIsSaving(false);
+        SshConfigModel sshConfigModel = converter.convert(parameters);
+        sshClient.connect(sshConfigModel);
+        logReaderThread.startRead(sshConfigModel.getServerLogPath());
+        logReaderThread.setIsSaving(false);
     }
 
     private void stopTailing() {

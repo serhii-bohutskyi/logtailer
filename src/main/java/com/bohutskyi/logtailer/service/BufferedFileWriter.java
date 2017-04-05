@@ -20,7 +20,7 @@ import java.util.concurrent.BlockingQueue;
  * @author Serhii Bohutskyi
  */
 @Component
-public class LogFileWriter extends Thread {
+public class BufferedFileWriter extends Thread {
 
     @Autowired
     @Qualifier("logFileQueue")
