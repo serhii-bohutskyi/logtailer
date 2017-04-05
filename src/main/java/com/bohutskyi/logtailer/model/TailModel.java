@@ -1,4 +1,4 @@
-package com.bohutskyi.logtailer.service;
+package com.bohutskyi.logtailer.model;
 
 /**
  * @author Serhii Bohutksyi
@@ -10,6 +10,15 @@ public class TailModel {
     private String username;
     private String password;
     private String serverLogPath;
+    private String localLogPath;
+
+    public String getLocalLogPath() {
+        return localLogPath;
+    }
+
+    public void setLocalLogPath(String localLogPath) {
+        this.localLogPath = localLogPath;
+    }
 
     public String getHost() {
         return host;

@@ -27,17 +27,18 @@ public abstract class MainFrame extends javax.swing.JFrame implements Runnable {
     private Thread logThread;
 
     @Autowired
-    private BlockingQueue<String> logQueue;
+    private BlockingQueue<java.util.List<String>> logUiQueue;
     @Autowired
     private ApplicationEventPublisher publisher;
 
     @PostConstruct
     public void start() {
+        handle4Kmonitor();
+
+
+
         logThread = new Thread(this);
         logThread.start();
-
-
-        handle4Kmonitor();
     }
 
     private void handle4Kmonitor() {
@@ -54,7 +55,7 @@ public abstract class MainFrame extends javax.swing.JFrame implements Runnable {
     }
 
     public Map<FormParameter, String> getParameters() {
-        HashMap<FormParameter, String> params = new HashMap<FormParameter, String>();
+        Map<FormParameter, String> params = new HashMap<FormParameter, String>();
         params.put(FormParameter.HOST, getHostTextField().getText());
         params.put(FormParameter.PORT, getPortTextField().getText());
         params.put(FormParameter.USERNAME, getUsernameTextField().getText());
@@ -69,17 +70,19 @@ public abstract class MainFrame extends javax.swing.JFrame implements Runnable {
     public void run() {
         try {
             while (true) {
-                consume(logQueue.take());
+                consume(logUiQueue.take());
             }
         } catch (InterruptedException ex) {
+            ex.printStackTrace();
             //thread interrupted, todo handle this ?
         }
     }
 
-    void consume(String log) {
+    private void consume(java.util.List<String> logs) {
         try {
-            //todo writetofile
-            getLogDocument().insertString(getLogDocument().getLength(), "\n" + log, keyWord);
+            for (String log : logs) {
+                getLogDocument().insertString(getLogDocument().getLength(), "\n" + log, keyWord);
+            }
         } catch (BadLocationException e) {
             e.printStackTrace();//todo
         }
@@ -96,6 +99,7 @@ public abstract class MainFrame extends javax.swing.JFrame implements Runnable {
     public void startTailToFileUi() {
         getTailToFileButton().setText("Stop tailing to file");
         isTailingToFile = true;
+        setEditable(false, true);
     }
 
     public void stopTailToFileUi() {
@@ -106,6 +110,7 @@ public abstract class MainFrame extends javax.swing.JFrame implements Runnable {
     public void startTailUi() {
         getTailButton().setText("Stop tailing");
         isTailing = true;
+        setEditable(false, false);
     }
 
     public void stopTailUi() {

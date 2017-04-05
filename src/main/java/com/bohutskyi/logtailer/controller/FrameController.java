@@ -2,8 +2,10 @@ package com.bohutskyi.logtailer.controller;
 
 import com.bohutskyi.logtailer.service.Converter;
 import com.bohutskyi.logtailer.service.FormParameter;
+import com.bohutskyi.logtailer.service.LogFileWriter;
 import com.bohutskyi.logtailer.service.SshClient;
-import com.bohutskyi.logtailer.service.TailModel;
+import com.bohutskyi.logtailer.model.TailModel;
+import com.bohutskyi.logtailer.service.SshLogReader;
 import com.bohutskyi.logtailer.ui.MainFrame;
 import com.bohutskyi.logtailer.ui.Notifications;
 import com.bohutskyi.logtailer.validator.Validator;
@@ -33,20 +35,20 @@ public class FrameController extends AbstractFrameController {
     private Validator validator;
     @Autowired
     private SshClient sshClient;
+    @Autowired
+    private LogFileWriter logFileWriter;
+    @Autowired
+    private SshLogReader sshLogReader;
 
     @PostConstruct
     public void init() {
         registerListener(mainFrame.getTailButton(), (e) -> onTailButtonClicked());
         registerListener(mainFrame.getTailToFileButton(), (e) -> {
-            try {
-                onTailToFileButtonClicked();
-            } catch (JSchException e1) {
-                e1.printStackTrace();
-            }
+            onTailToFileButtonClicked();
         });
     }
 
-    private void onTailToFileButtonClicked() throws JSchException {
+    private void onTailToFileButtonClicked() {
         if (mainFrame.isTailingToFile()) {
             stopTailingToFile();
         } else {
@@ -54,9 +56,8 @@ public class FrameController extends AbstractFrameController {
         }
     }
 
-    private void startTailingToFile() throws JSchException {
+    private void startTailingToFile() {
         mainFrame.startTailToFileUi();
-        mainFrame.setEditable(false, true);
 
         Map<FormParameter, String> parameters = mainFrame.getParameters();
 
@@ -68,10 +69,11 @@ public class FrameController extends AbstractFrameController {
         }
         TailModel tailModel = converter.convert(parameters);
 
-        sshClient.setTailModel(tailModel);
-        sshClient.connect();
-        sshClient.tail();
+        sshClient.connect(tailModel);
+        sshLogReader.startRead(tailModel.getServerLogPath());
+        sshLogReader.setIsSaving(true);
 
+        logFileWriter.startWrite(tailModel.getLocalLogPath());
     }
 
     private void stopTailingToFile() {
@@ -99,14 +101,9 @@ public class FrameController extends AbstractFrameController {
         }
 
         TailModel tailModel = converter.convert(parameters);
-
-        try {
-            sshClient.connect(tailModel);
-        } catch (JSchException e) {
-            mainFrame.stopTailUi();
-            Notifications.showFormValidationAlert(Collections.singletonList(e.getMessage()));
-            return;
-        }
+        sshClient.connect(tailModel);
+        sshLogReader.startRead(tailModel.getServerLogPath());
+        sshLogReader.setIsSaving(false);
     }
 
     private void stopTailing() {

@@ -1,5 +1,6 @@
 package com.bohutskyi.logtailer.service;
 
+import com.bohutskyi.logtailer.model.TailModel;
 import org.springframework.stereotype.Service;
 
 import java.util.Map;
@@ -17,6 +18,7 @@ public class Converter {
         tailModel.setUsername(map.get(FormParameter.USERNAME));
         tailModel.setPassword(map.get(FormParameter.PASSWORD));
         tailModel.setServerLogPath(map.get(FormParameter.SERVER_LOG_PATH));
+        tailModel.setLocalLogPath(map.get(FormParameter.LOCAL_LOG_PATH));
         return tailModel;
     }
 }
