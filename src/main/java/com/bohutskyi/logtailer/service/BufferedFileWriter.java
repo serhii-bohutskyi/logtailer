@@ -42,13 +42,18 @@ public class BufferedFileWriter extends Thread {
 
     private FileChannel openChannel(String filePath) {
         File file = new File(filePath);
-        if (!file.exists()) {
-            file.mkdir();
-        }
+//        if (!file.exists()) {
+//            file.mkdir();
+//        }
         try {
-            return new RandomAccessFile(file, "rw").getChannel();
+            RandomAccessFile accessFile = new RandomAccessFile(file, "rw");
+            accessFile.seek(0);
+            accessFile.setLength(0);
+            return accessFile.getChannel();
         } catch (FileNotFoundException e) {
             throw new LogFileWriterException("Local file not found! Please check path and permissions.");
+        } catch (IOException e) {
+            throw new LogFileWriterException("Cannot clean Local file! Please check is it locked?");
         }
     }
 

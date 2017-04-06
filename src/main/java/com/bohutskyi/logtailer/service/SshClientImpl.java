@@ -35,8 +35,6 @@ public class SshClientImpl implements SshClient {
             Properties config = new Properties();
             config.put("StrictHostKeyChecking", "no");
             jschSession.setConfig(config);
-            jschSession.connect(15000);
-            jschSession.setServerAliveInterval(15000);
 
             setSession(jschSession);
         } catch (JSchException e) {

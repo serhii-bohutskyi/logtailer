@@ -15,6 +15,7 @@ import java.util.concurrent.LinkedBlockingDeque;
 /**
  * @author Serhii Bohutkyi
  */
+@EnableAsync
 @SpringBootApplication
 @EnableAutoConfiguration
 public class Application {

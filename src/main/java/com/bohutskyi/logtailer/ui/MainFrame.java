@@ -6,11 +6,15 @@ import org.springframework.context.ApplicationEventPublisher;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
-import javax.swing.*;
+import javax.swing.JButton;
+import javax.swing.JPasswordField;
+import javax.swing.JTextField;
 import javax.swing.text.BadLocationException;
 import javax.swing.text.Document;
 import javax.swing.text.SimpleAttributeSet;
-import java.awt.*;
+import java.awt.Font;
+import java.awt.GraphicsDevice;
+import java.awt.GraphicsEnvironment;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
@@ -34,8 +38,6 @@ public abstract class MainFrame extends javax.swing.JFrame implements Runnable {
     @PostConstruct
     public void start() {
         handle4Kmonitor();
-
-
 
         logThread = new Thread(this);
         logThread.start();
