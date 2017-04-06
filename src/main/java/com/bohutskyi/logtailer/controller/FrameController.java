@@ -4,7 +4,7 @@ import com.bohutskyi.logtailer.model.SshConfigModel;
 import com.bohutskyi.logtailer.service.BufferedFileWriter;
 import com.bohutskyi.logtailer.service.Converter;
 import com.bohutskyi.logtailer.service.FormParameter;
-import com.bohutskyi.logtailer.service.LogReaderThread;
+import com.bohutskyi.logtailer.service.LogReader;
 import com.bohutskyi.logtailer.service.SshClientImpl;
 import com.bohutskyi.logtailer.ui.MainFrame;
 import com.bohutskyi.logtailer.ui.Notifications;
@@ -14,6 +14,7 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.PostConstruct;
+import java.io.InputStream;
 import java.util.List;
 import java.util.Map;
 
@@ -36,7 +37,7 @@ public class FrameController extends AbstractFrameController {
     @Autowired
     private BufferedFileWriter bufferedFileWriter;
     @Autowired
-    private LogReaderThread logReaderThread;
+    private LogReader logReader;
 
     @PostConstruct
     public void init() {
@@ -67,15 +68,22 @@ public class FrameController extends AbstractFrameController {
         }
         SshConfigModel sshConfigModel = converter.convert(parameters);
 
-        sshClient.connect(sshConfigModel);
-        logReaderThread.startRead(sshConfigModel.getServerLogPath());
-        logReaderThread.setIsSaving(true);
-
         bufferedFileWriter.startWrite(sshConfigModel.getLocalLogPath());
+
+        if(!sshClient.isConnected()) {
+            sshClient.connect(sshConfigModel);
+        }
+        if(!logReader.isAlive()){
+            InputStream inputStream = sshClient.readFile(sshConfigModel.getServerLogPath());
+            logReader.start(inputStream);
+        }
+        logReader.sendToFile();
     }
 
     private void stopTailingToFile() {
-
+        mainFrame.stopTailToFileUi();
+        bufferedFileWriter.stopWrite();
+        logReader.stopSendToFile();
     }
 
     public void onTailButtonClicked() {
@@ -100,8 +108,9 @@ public class FrameController extends AbstractFrameController {
 
         SshConfigModel sshConfigModel = converter.convert(parameters);
         sshClient.connect(sshConfigModel);
-        logReaderThread.startRead(sshConfigModel.getServerLogPath());
-        logReaderThread.setIsSaving(false);
+        InputStream inputStream = sshClient.readFile(sshConfigModel.getServerLogPath());
+        logReader.start(inputStream);
+        logReader.sendToUi();
     }
 
     private void stopTailing() {
