@@ -39,6 +39,8 @@ public abstract class MainFrame extends javax.swing.JFrame implements Runnable {
     public void start() {
         handle4Kmonitor();
 
+
+
         logThread = new Thread(this);
         logThread.start();
     }
