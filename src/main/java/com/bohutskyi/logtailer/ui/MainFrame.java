@@ -1,6 +1,8 @@
 package com.bohutskyi.logtailer.ui;
 
 import com.bohutskyi.logtailer.service.FormParameter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
 
@@ -22,7 +24,8 @@ import java.util.concurrent.BlockingQueue;
 /**
  * @author Serhii Bohutskyi
  */
-public abstract class MainFrame extends javax.swing.JFrame implements Runnable {
+public abstract class MainFrame extends javax.swing.JFrame {
+    private Logger logger = LoggerFactory.getLogger(getClass().getName());
 
     private volatile boolean isTailing = false;
     private volatile boolean isTailingToFile = false;
@@ -40,8 +43,7 @@ public abstract class MainFrame extends javax.swing.JFrame implements Runnable {
         handle4Kmonitor();
 
 
-
-        logThread = new Thread(this);
+        logThread = new LogUiWriterThread();
         logThread.start();
     }
 
@@ -55,7 +57,9 @@ public abstract class MainFrame extends javax.swing.JFrame implements Runnable {
 
     @PreDestroy
     public void stop() {
-        logThread.interrupt();
+        if (logThread.isAlive()) {
+            logThread.interrupt();
+        }
     }
 
     public Map<FormParameter, String> getParameters() {
@@ -69,16 +73,24 @@ public abstract class MainFrame extends javax.swing.JFrame implements Runnable {
         return params;
     }
 
-    //this thread to update logs on UI
-    @Override
-    public void run() {
-        try {
-            while (true) {
-                consume(logUiQueue.take());
+
+    private class LogUiWriterThread extends Thread {
+        private Logger logger = LoggerFactory.getLogger(getClass().getName());
+
+        public LogUiWriterThread() {
+            super("LogUiWriterThread");
+        }
+
+        //this thread to update logs on UI
+        @Override
+        public void run() {
+            try {
+                while (isInterrupted()) {
+                    consume(logUiQueue.take());
+                }
+            } catch (InterruptedException ex) {
+                logger.debug("LogUiWriterThread interrupted!");
             }
-        } catch (InterruptedException ex) {
-            ex.printStackTrace();
-            //thread interrupted, todo handle this ?
         }
     }
 

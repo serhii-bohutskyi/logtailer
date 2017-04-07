@@ -1,11 +1,14 @@
 package com.bohutskyi.logtailer.ui;
 
-import javax.swing.*;
+import javax.swing.JButton;
+import javax.swing.JPasswordField;
+import javax.swing.JScrollPane;
+import javax.swing.JTextField;
 import javax.swing.text.DefaultCaret;
 import javax.swing.text.Document;
 import javax.swing.text.StyledDocument;
-import java.awt.*;
-import java.util.*;
+import java.awt.Component;
+import java.awt.Font;
 
 /**
  * @author Serhii Bohutskyi
@@ -214,20 +217,11 @@ public class MainFrameUi extends MainFrame {
     // End of variables declaration
 
 
-    public static java.util.List<Component> getAllComponents(final Container c) {
-        Component[] comps = c.getComponents();
-        java.util.List<Component> compList = new ArrayList<Component>();
-        for (Component comp : comps) {
-            compList.add(comp);
-            if (comp instanceof Container)
-                compList.addAll(getAllComponents((Container) comp));
-        }
-        return compList;
-    }
+
 
     @Override
     protected void updateFont(Font font) {
-        for (Component component : getAllComponents(jPanel1)) {
+        for (Component component : ComponentUtil.getAllComponents(jPanel1)) {
             component.setFont(font);
         }
     }
