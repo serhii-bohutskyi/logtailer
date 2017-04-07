@@ -39,11 +39,7 @@ public abstract class MainFrame extends javax.swing.JFrame implements Runnable {
     public void start() {
         handle4Kmonitor();
 
-        getHostTextField().setText("10.160.7.240");
-        getUsernameTextField().setText("remotedeploy");
-        getPasswordPasswordField().setText("password");
-        getServerLogPathTextField().setText("/datalex/logs/jboss/matrixtdp.log");
-        getLocalLogPathTextField().setText("D:/log.log");
+
 
         logThread = new Thread(this);
         logThread.start();
