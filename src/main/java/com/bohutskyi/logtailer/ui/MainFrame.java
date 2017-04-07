@@ -107,7 +107,7 @@ public abstract class MainFrame extends javax.swing.JFrame implements Runnable {
     }
 
     public void stopTailToFileUi() {
-        getTailButton().setText("Tail to file");
+        getTailToFileButton().setText("Tail to file");
         isTailingToFile = false;
     }
 
